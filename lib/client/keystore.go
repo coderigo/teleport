@@ -24,13 +24,13 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"os/user"
 	"path/filepath"
 	"strings"
 
 	"golang.org/x/crypto/ssh"
 
 	"github.com/gravitational/teleport"
+	"github.com/gravitational/teleport/api/client"
 	"github.com/gravitational/teleport/api/constants"
 	"github.com/gravitational/teleport/lib/auth"
 	"github.com/gravitational/teleport/lib/sshutils"
@@ -41,15 +41,9 @@ import (
 )
 
 const (
-	defaultKeyDir      = ProfileDir
-	fileExtTLSCert     = "-x509.pem"
-	fileExtPub         = ".pub"
-	sessionKeyDir      = "keys"
-	fileNameKnownHosts = "known_hosts"
-	fileNameTLSCerts   = "certs.pem"
-	kubeDirSuffix      = "-kube"
-	dbDirSuffix        = "-db"
-	appDirSuffix       = "-app"
+	kubeDirSuffix = "-kube"
+	dbDirSuffix   = "-db"
+	appDirSuffix  = "-app"
 
 	// profileDirPerms is the default permissions applied to the profile
 	// directory (usually ~/.tsh)
@@ -176,10 +170,10 @@ func (fs *FSLocalKeyStore) AddKey(host, username string, key *Key) error {
 	if err := writeBytes(username+constants.FileExtSSHCert, key.Cert); err != nil {
 		return trace.Wrap(err)
 	}
-	if err := writeBytes(username+fileExtTLSCert, key.TLSCert); err != nil {
+	if err := writeBytes(username+constants.FileExtTLSCert, key.TLSCert); err != nil {
 		return trace.Wrap(err)
 	}
-	if err := writeBytes(username+fileExtPub, key.Pub); err != nil {
+	if err := writeBytes(username+constants.FileExtPub, key.Pub); err != nil {
 		return trace.Wrap(err)
 	}
 	if err := writeBytes(username, key.Priv); err != nil {
@@ -202,13 +196,13 @@ func (fs *FSLocalKeyStore) AddKey(host, username string, key *Key) error {
 		// don't expect any well-meaning user to create bad names.
 		kubeCluster = filepath.Clean(kubeCluster)
 
-		fname := filepath.Join(username+kubeDirSuffix, key.ClusterName, kubeCluster+fileExtTLSCert)
+		fname := filepath.Join(username+kubeDirSuffix, key.ClusterName, kubeCluster+constants.FileExtTLSCert)
 		if err := writeBytes(fname, cert); err != nil {
 			return trace.Wrap(err)
 		}
 	}
 	for db, cert := range key.DBTLSCerts {
-		fname := filepath.Join(username+dbDirSuffix, key.ClusterName, filepath.Clean(db)+fileExtTLSCert)
+		fname := filepath.Join(username+dbDirSuffix, key.ClusterName, filepath.Clean(db)+constants.FileExtTLSCert)
 		if err := os.MkdirAll(filepath.Join(dirPath, filepath.Dir(fname)), os.ModeDir|profileDirPerms); err != nil {
 			return trace.Wrap(err)
 		}
@@ -217,7 +211,7 @@ func (fs *FSLocalKeyStore) AddKey(host, username string, key *Key) error {
 		}
 	}
 	for app, cert := range key.AppTLSCerts {
-		fname := filepath.Join(username+appDirSuffix, key.ClusterName, filepath.Clean(app)+fileExtTLSCert)
+		fname := filepath.Join(username+appDirSuffix, key.ClusterName, filepath.Clean(app)+constants.FileExtTLSCert)
 		if err := os.MkdirAll(filepath.Join(dirPath, filepath.Dir(fname)), os.ModeDir|profileDirPerms); err != nil {
 			return trace.Wrap(err)
 		}
@@ -233,8 +227,8 @@ func (fs *FSLocalKeyStore) DeleteKey(host, username string, opts ...KeyOption) e
 	dirPath := fs.dirFor(host)
 	files := []string{
 		filepath.Join(dirPath, username+constants.FileExtSSHCert),
-		filepath.Join(dirPath, username+fileExtTLSCert),
-		filepath.Join(dirPath, username+fileExtPub),
+		filepath.Join(dirPath, username+constants.FileExtTLSCert),
+		filepath.Join(dirPath, username+constants.FileExtPub),
 		filepath.Join(dirPath, username),
 	}
 	for _, fn := range files {
@@ -266,7 +260,7 @@ func (fs *FSLocalKeyStore) DeleteKeyOption(host, username string, opts ...KeyOpt
 
 // DeleteKeys removes all session keys from disk.
 func (fs *FSLocalKeyStore) DeleteKeys() error {
-	dirPath := filepath.Join(fs.KeyDir, sessionKeyDir)
+	dirPath := filepath.Join(fs.KeyDir, constants.SessionKeyDir)
 
 	err := os.RemoveAll(dirPath)
 	if err != nil {
@@ -291,13 +285,13 @@ func (fs *FSLocalKeyStore) GetKey(proxyHost, username string, opts ...KeyOption)
 		fs.log.Error(err)
 		return nil, trace.Wrap(err)
 	}
-	tlsCertFile := filepath.Join(dirPath, username+fileExtTLSCert)
+	tlsCertFile := filepath.Join(dirPath, username+constants.FileExtTLSCert)
 	tlsCert, err := ioutil.ReadFile(tlsCertFile)
 	if err != nil {
 		fs.log.Error(err)
 		return nil, trace.Wrap(err)
 	}
-	pub, err := ioutil.ReadFile(filepath.Join(dirPath, username+fileExtPub))
+	pub, err := ioutil.ReadFile(filepath.Join(dirPath, username+constants.FileExtPub))
 	if err != nil {
 		fs.log.Error(err)
 		return nil, trace.Wrap(err)
@@ -402,7 +396,7 @@ func (o withKubeCerts) getKey(store LocalKeyStore, idx keyIndex, key *Key) error
 			if err != nil {
 				return trace.Wrap(err)
 			}
-			kubeCluster := strings.TrimSuffix(filepath.Base(fi.Name()), fileExtTLSCert)
+			kubeCluster := strings.TrimSuffix(filepath.Base(fi.Name()), constants.FileExtTLSCert)
 			key.KubeTLSCerts[kubeCluster] = data
 		}
 	case *MemLocalKeyStore:
@@ -468,7 +462,7 @@ func (o withDBCerts) getKey(store LocalKeyStore, idx keyIndex, key *Key) error {
 			if err != nil {
 				return trace.Wrap(err)
 			}
-			dbName := strings.TrimSuffix(filepath.Base(fi.Name()), fileExtTLSCert)
+			dbName := strings.TrimSuffix(filepath.Base(fi.Name()), constants.FileExtTLSCert)
 			key.DBTLSCerts[dbName] = data
 		}
 	case *MemLocalKeyStore:
@@ -494,7 +488,7 @@ func (o withDBCerts) deleteKey(store LocalKeyStore, idx keyIndex) error {
 	case *FSLocalKeyStore:
 		dirPath := s.dirFor(idx.proxyHost)
 		if o.dbName != "" {
-			return os.Remove(filepath.Join(dirPath, idx.username+dbDirSuffix, o.teleportClusterName, o.dbName+fileExtTLSCert))
+			return os.Remove(filepath.Join(dirPath, idx.username+dbDirSuffix, o.teleportClusterName, o.dbName+constants.FileExtTLSCert))
 		}
 		return os.RemoveAll(filepath.Join(dirPath, idx.username+dbDirSuffix, o.teleportClusterName))
 	case *MemLocalKeyStore:
@@ -547,7 +541,7 @@ func (o withAppCerts) getKey(store LocalKeyStore, idx keyIndex, key *Key) error 
 			if err != nil {
 				return trace.Wrap(err)
 			}
-			appName := strings.TrimSuffix(filepath.Base(fi.Name()), fileExtTLSCert)
+			appName := strings.TrimSuffix(filepath.Base(fi.Name()), constants.FileExtTLSCert)
 			key.AppTLSCerts[appName] = data
 		}
 	case *MemLocalKeyStore:
@@ -573,7 +567,7 @@ func (o withAppCerts) deleteKey(store LocalKeyStore, idx keyIndex) error {
 	case *FSLocalKeyStore:
 		dirPath := s.dirFor(idx.proxyHost)
 		if o.appName != "" {
-			return os.Remove(filepath.Join(dirPath, idx.username+appDirSuffix, o.teleportClusterName, o.appName+fileExtTLSCert))
+			return os.Remove(filepath.Join(dirPath, idx.username+appDirSuffix, o.teleportClusterName, o.appName+constants.FileExtTLSCert))
 		}
 		return os.RemoveAll(filepath.Join(dirPath, idx.username+appDirSuffix, o.teleportClusterName))
 	case *MemLocalKeyStore:
@@ -595,27 +589,14 @@ func (o withAppCerts) deleteKey(store LocalKeyStore, idx keyIndex) error {
 
 // initKeysDir initializes the keystore root directory. Usually it is ~/.tsh
 func initKeysDir(dirPath string) (string, error) {
-	var err error
-	// not specified? use `~/.tsh`
-	if dirPath == "" {
-		u, err := user.Current()
-		if err != nil {
-			dirPath = os.TempDir()
-		} else {
-			dirPath = u.HomeDir
-		}
-		dirPath = filepath.Join(dirPath, defaultKeyDir)
-	}
+	dirPath = client.FullProfilePath(dirPath)
 	// create if doesn't exist:
-	_, err = os.Stat(dirPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			err = os.MkdirAll(dirPath, os.ModeDir|profileDirPerms)
-			if err != nil {
-				return "", trace.ConvertSystemError(err)
-			}
-		} else {
+	if _, err := os.Stat(dirPath); err != nil {
+		if !os.IsNotExist(err) {
 			return "", trace.Wrap(err)
+		}
+		if err = os.MkdirAll(dirPath, os.ModeDir|profileDirPerms); err != nil {
+			return "", trace.ConvertSystemError(err)
 		}
 	}
 
@@ -634,14 +615,14 @@ type fsLocalNonSessionKeyStore struct {
 // for fs.KeyDir is typically "~/.tsh", sessionKeyDir is typically "keys",
 // and proxyHost typically has values like "proxy.example.com".
 func (fs *fsLocalNonSessionKeyStore) dirFor(proxyHost string) string {
-	return filepath.Join(fs.KeyDir, sessionKeyDir, proxyHost)
+	return filepath.Join(fs.KeyDir, constants.SessionKeyDir, proxyHost)
 }
 
 // GetCertsPEM returns trusted TLS certificates of certificate authorities PEM
 // blocks.
 func (fs *fsLocalNonSessionKeyStore) GetCertsPEM(proxy string) ([][]byte, error) {
 	dir := fs.dirFor(proxy)
-	data, err := ioutil.ReadFile(filepath.Join(dir, fileNameTLSCerts))
+	data, err := ioutil.ReadFile(filepath.Join(dir, constants.FileNameTLSCerts))
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
@@ -690,7 +671,7 @@ func (fs *fsLocalNonSessionKeyStore) GetCerts(proxy string) (*x509.CertPool, err
 
 // GetKnownHostKeys returns all known public keys from 'known_hosts'
 func (fs *fsLocalNonSessionKeyStore) GetKnownHostKeys(hostname string) ([]ssh.PublicKey, error) {
-	bytes, err := ioutil.ReadFile(filepath.Join(fs.KeyDir, fileNameKnownHosts))
+	bytes, err := ioutil.ReadFile(filepath.Join(fs.KeyDir, constants.FileNameKnownHosts))
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil
@@ -728,7 +709,7 @@ func (fs *fsLocalNonSessionKeyStore) GetKnownHostKeys(hostname string) ([]ssh.Pu
 
 // AddKnownHostKeys adds a new entry to 'known_hosts' file
 func (fs *fsLocalNonSessionKeyStore) AddKnownHostKeys(hostname string, hostKeys []ssh.PublicKey) (retErr error) {
-	fp, err := os.OpenFile(filepath.Join(fs.KeyDir, fileNameKnownHosts), os.O_CREATE|os.O_RDWR, 0640)
+	fp, err := os.OpenFile(filepath.Join(fs.KeyDir, constants.FileNameKnownHosts), os.O_CREATE|os.O_RDWR, 0640)
 	if err != nil {
 		return trace.ConvertSystemError(err)
 	}
@@ -781,7 +762,7 @@ func (fs *fsLocalNonSessionKeyStore) SaveCerts(proxy string, cas []auth.TrustedC
 		return trace.ConvertSystemError(err)
 	}
 
-	fp, err := os.OpenFile(filepath.Join(dir, fileNameTLSCerts), os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0640)
+	fp, err := os.OpenFile(filepath.Join(dir, constants.FileNameTLSCerts), os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0640)
 	if err != nil {
 		return trace.ConvertSystemError(err)
 	}
