@@ -856,7 +856,7 @@ type PAM struct {
 	// policy.
 	UsePAMAuth bool `yaml:"use_pam_auth"`
 
-	// Environment variables to pass to PAM.
+	// Environment represents env variables to pass to PAM.
 	// These may contain role-style interpolation syntax.
 	Environment map[string]string `yaml:"environment"`
 }
