@@ -91,7 +91,8 @@ ssh_service:
     # use the "auth" modules in the PAM config
     # "false" by default
     use_pam_auth: true
-    # new section
+    # sets custom environment variables for PAM modules
+    # no environment variables except the standard ones are set by default
     environment:
       FOO: "bar"
       EMAIL: "{{ external.email }}"
