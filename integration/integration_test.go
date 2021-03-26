@@ -3224,6 +3224,7 @@ func (s *IntSuite) TestPAM(c *check.C) {
 		inServiceName string
 		inUsePAMAuth  bool
 		outContains   []string
+		environment   map[string]string
 	}{
 		// 0 - No PAM support, session should work but no PAM related output.
 		{
@@ -3269,6 +3270,23 @@ func (s *IntSuite) TestPAM(c *check.C) {
 			inUsePAMAuth:  true,
 			outContains:   []string{},
 		},
+		// 5 - PAM enabled, custom environment variables are passed.
+		{
+			inEnabled:     true,
+			inServiceName: "teleport-custom-env",
+			inUsePAMAuth:  true,
+			outContains: []string{
+				"pam_sm_acct_mgmt OK",
+				"pam_sm_open_session OK",
+				"pam_sm_close_session OK",
+				"pam_custom_envs OK",
+			},
+			environment: map[string]string{
+				"FIRST_NAME": "JOHN",
+				"LAST_NAME":  "DOE",
+				"EMAIL":      "john.doe@foo.bar",
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -3285,6 +3303,7 @@ func (s *IntSuite) TestPAM(c *check.C) {
 			tconf.SSH.PAM.Enabled = tt.inEnabled
 			tconf.SSH.PAM.ServiceName = tt.inServiceName
 			tconf.SSH.PAM.UsePAMAuth = tt.inUsePAMAuth
+			tconf.SSH.PAM.Environment = tt.environment
 
 			return c, nil, nil, tconf
 		}
