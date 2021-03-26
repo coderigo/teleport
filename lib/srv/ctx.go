@@ -711,7 +711,7 @@ func getPAMConfig(c *ServerContext) (*PAMConfig, error) {
 			}
 
 			if expr.Namespace() != teleport.TraitExternalPrefix {
-				return nil, trace.BadParameter("PAM environment interpolation only support external traits, found %q", value)
+				return nil, trace.BadParameter("PAM environment interpolation only supports external traits, found %q", value)
 			}
 
 			result, err := expr.Interpolate(traits)
@@ -730,7 +730,7 @@ func getPAMConfig(c *ServerContext) (*PAMConfig, error) {
 	}, nil
 }
 
-func getPAMEnvironment(c *ExecCommand) *map[string]string {
+func getPAMEnvironment(c *ExecCommand) map[string]string {
 	if c.PAMConfig == nil {
 		return nil
 	}
@@ -740,7 +740,7 @@ func getPAMEnvironment(c *ExecCommand) *map[string]string {
 	pamInEnvironment["TELEPORT_LOGIN"] = c.Login
 	pamInEnvironment["TELEPORT_ROLES"] = strings.Join(c.Roles, " ")
 
-	return &pamInEnvironment
+	return pamInEnvironment
 }
 
 // ExecCommand takes a *ServerContext and extracts the parts needed to create

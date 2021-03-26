@@ -55,7 +55,7 @@ type Config struct {
 	// policy.
 	UsePAMAuth bool
 
-	// Environment represents env variables to pass to PAM.
+	// Environment represents environment variables to pass to PAM.
 	// These may contain role-style interpolation syntax.
 	Environment map[string]string
 }

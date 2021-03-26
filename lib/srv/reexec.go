@@ -197,7 +197,7 @@ func RunCommand() (io.Writer, int, error) {
 			// Set Teleport specific environment variables that PAM modules
 			// like pam_script.so can pick up to potentially customize the
 			// account/session.
-			Env:    *getPAMEnvironment(&c),
+			Env:    getPAMEnvironment(&c),
 			Stdin:  stdin,
 			Stdout: stdout,
 			Stderr: stderr,
@@ -286,7 +286,7 @@ func RunForward() (io.Writer, int, error) {
 			// Set Teleport specific environment variables that PAM modules
 			// like pam_script.so can pick up to potentially customize the
 			// account/session.
-			Env: *getPAMEnvironment(&c),
+			Env: getPAMEnvironment(&c),
 		})
 		if err != nil {
 			return errorWriter, teleport.RemoteCommandFailure, trace.Wrap(err)

@@ -76,7 +76,7 @@ and recorded.
 ## Custom environment variables
 
 Teleport supports setting arbitrary environment variables for PAM modules as of version 6.1.
-These variables can also be role-style SSO claim in the form `{{ external.email }}`
+These variables can also be role-style SSO claims in the form `{{ external.email }}`
 where `email` is a claim made by the configured SSO IdP.
 
 To set custom environment variables, update `/etc/teleport.yaml` with:
@@ -84,7 +84,7 @@ To set custom environment variables, update `/etc/teleport.yaml` with:
 ```yaml
 ssh_service:
   pam:
-    # "no" by default
+    # disabled by default
     enabled: true
     # use /etc/pam.d/sshd configuration (the default)
     service_name: "sshd"
@@ -92,7 +92,7 @@ ssh_service:
     # "false" by default
     use_pam_auth: true
     # sets custom environment variables for PAM modules
-    # no environment variables except the standard ones are set by default
+    # no environment variables except the standard `TELEPORT_USERNAME`, `TELEPORT_LOGIN`, and `TELEPORT_ROLES`
     environment:
       FOO: "bar"
       EMAIL: "{{ external.email }}"
