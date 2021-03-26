@@ -725,6 +725,19 @@ func getPAMConfig(c *ServerContext) (*PAMConfig, error) {
 	}, nil
 }
 
+func getPAMEnvironment(c *ExecCommand) *map[string]string {
+	if c.PAMConfig == nil {
+		return nil
+	}
+
+	pamInEnvironment := c.PAMConfig.Environment
+	pamInEnvironment["TELEPORT_USERNAME"] = c.Username
+	pamInEnvironment["TELEPORT_LOGIN"] = c.Login
+	pamInEnvironment["TELEPORT_ROLES"] = strings.Join(c.Roles, " ")
+
+	return &pamInEnvironment
+}
+
 // ExecCommand takes a *ServerContext and extracts the parts needed to create
 // an *execCommand which can be re-sent to Teleport.
 func (c *ServerContext) ExecCommand() (*ExecCommand, error) {

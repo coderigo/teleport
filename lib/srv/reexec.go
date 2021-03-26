@@ -28,7 +28,6 @@ import (
 	"os/user"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"syscall"
 
 	"github.com/gravitational/trace"
@@ -118,19 +117,6 @@ type UaccMetadata struct {
 
 	// WtmpPath is the path of the system wtmp log.
 	WtmpPath string `json:"wtmp_path,omitempty"`
-}
-
-func getPAMEnvironment(c *ExecCommand) *map[string]string {
-	if c.PAMConfig == nil {
-		return nil
-	}
-
-	pamInEnvironment := c.PAMConfig.Environment
-	pamInEnvironment["TELEPORT_USERNAME"] = c.Username
-	pamInEnvironment["TELEPORT_LOGIN"] = c.Login
-	pamInEnvironment["TELEPORT_ROLES"] = strings.Join(c.Roles, " ")
-
-	return &pamInEnvironment
 }
 
 // RunCommand reads in the command to run from the parent process (over a
