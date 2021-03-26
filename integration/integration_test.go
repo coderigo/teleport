@@ -3284,7 +3284,7 @@ func (s *IntSuite) TestPAM(c *check.C) {
 			environment: map[string]string{
 				"FIRST_NAME": "JOHN",
 				"LAST_NAME":  "DOE",
-				"EMAIL":      "john.doe@foo.bar",
+				"OTHER":      "{{ external.testing }}",
 			},
 		},
 	}
@@ -5146,6 +5146,7 @@ func hasPAMPolicy() bool {
 		"/etc/pam.d/teleport-acct-failure",
 		"/etc/pam.d/teleport-session-failure",
 		"/etc/pam.d/teleport-success",
+		"/etc/pam.d/teleport-custom-env",
 	}
 
 	for _, fileName := range pamPolicyFiles {

@@ -29,7 +29,7 @@ int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags, int argc, const char **argv)
         // If the "test_custom_env" command is requested it will verify custom env inputs.
         if (strcmp(getenv("FIRST_NAME"), "JOHN") == 0
             && strcmp(getenv("LAST_NAME"), "DOE") == 0
-            && strcmp(getenv("EMAIL"), "john.doe@foo.bar") == 0) {
+            && strcmp(getenv("OTHER"), "integration") == 0) {
             pam_info(pamh, "pam_custom_envs OK");
         }
     }
