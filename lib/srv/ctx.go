@@ -679,11 +679,6 @@ func (c *ServerContext) String() string {
 }
 
 func getPAMConfig(c *ServerContext) (*PAMConfig, error) {
-	// PAM should be disabled.
-	if c.srv.Component() != teleport.ComponentNode {
-		return nil, nil
-	}
-
 	localPAMConfig, err := c.srv.GetPAM()
 	if err != nil {
 		return nil, trace.Wrap(err)
